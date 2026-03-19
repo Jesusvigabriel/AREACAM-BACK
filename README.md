@@ -15,11 +15,19 @@ Backend de AREACAM - Sistema de CCTV y NVR construido con Node.js, TypeScript, E
 
 ## 📋 Prerrequisitos
 
+### Linux (Ubuntu/Debian)
 - Ubuntu 20.04+ / Debian 11+
 - Acceso root/sudo
 - Conexión a internet
 
+### Windows
+- Windows 10/11
+- Privilegios de Administrador
+- Conexión a internet
+
 ## 🛠️ Instalación Rápida (Automática)
+
+### 🐧 Linux
 
 ```bash
 # 1. Clonar el repositorio
@@ -33,6 +41,30 @@ sudo ./install.sh
 pm2 start dist/index.js --name areacam-backend
 pm2 save
 ```
+
+### 🪟 Windows
+
+**PowerShell (Recomendado):**
+```powershell
+# 1. Clonar el repositorio
+git clone https://github.com/Jesusvigabriel/AREACAM-BACK.git
+cd AREACAM-BACK
+
+# 2. Ejecutar instalación automática (como Administrador)
+.\install.ps1
+
+# 3. Iniciar el backend
+pm2 start dist\index.js --name areacam-backend
+pm2 save
+```
+
+**CMD (Alternativa):**
+```cmd
+# Ejecutar como Administrador
+install.bat
+```
+
+**📖 Guía completa para Windows:** Ver [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md)
 
 **¡Listo!** El backend estará corriendo en `http://localhost:4000`
 
