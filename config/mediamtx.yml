@@ -1,0 +1,37 @@
+logLevel: info
+logDestinations:
+  - file
+logFile: /home/camaras-area54/mediamtx-logs/mediamtx.log
+api: true
+apiAddress: ":9997"
+metrics: true
+metricsAddress: ":9998"
+rtspAddress: ":8554"
+protocols:
+  - tcp
+encryption: "no"
+hls: true
+hlsAddress: ":8888"
+hlsAlwaysRemux: true
+hlsVariant: fmp4
+hlsSegmentCount: 3
+hlsSegmentDuration: 5s
+hlsSegmentMaxSize: 50M
+readTimeout: 90s
+writeTimeout: 90s
+readBufferCount: 4096
+webrtc: true
+webrtcAddress: ":8889"
+webrtcICEServers2: []
+record: false
+recordPath: /mnt/videos/areacam/recordings/%path/%Y-%m-%d_%H-%M-%S
+recordFormat: fmp4
+recordPartDuration: 10m
+recordSegmentDuration: 10m
+recordDeleteAfter: 1440h
+pathDefaults:
+  source: publisher
+  sourceOnDemand: false
+  runOnReady: ""
+  runOnNotReady: ""
+paths: {}

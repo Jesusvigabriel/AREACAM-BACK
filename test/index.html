@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Streaming - AreaCam</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+        .video-container {
+            background: #000;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            display: block;
+            margin: 0 auto;
+            border-radius: 4px;
+        }
+        .info {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.loading {
+            background: #ff9800;
+        }
+        .status.playing {
+            background: #4CAF50;
+        }
+        .status.error {
+            background: #f44336;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .camera-selector {
+            margin: 20px 0;
+        }
+        select {
+            padding: 10px;
+            border-radius: 4px;
+            background: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            font-size: 16px;
+            width: 100%;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎥 Test de Streaming - AreaCam</h1>
+    
+    <div class="info">
+        <h3>Información del Sistema</h3>
+        <p><strong>MediaMTX:</strong> Activo en puerto 8888 (HLS)</p>
+        <p><strong>Cámaras configuradas:</strong> <span id="cameraCount">Cargando...</span></p>
+    </div>
+
+    <div class="camera-selector">
+        <label for="cameraSelect"><strong>Seleccionar Cámara:</strong></label>
+        <select id="cameraSelect">
+            <option value="">Cargando cámaras...</option>
+        </select>
+    </div>
+
+    <div class="video-container">
+        <div id="status" class="status loading">⏳ Esperando selección de cámara...</div>
+        <video id="video" controls></video>
+    </div>
+
+    <div style="text-align: center;">
+        <button onclick="playStream()">▶️ Reproducir</button>
+        <button onclick="stopStream()">⏹️ Detener</button>
+        <button onclick="reloadCameras()">🔄 Recargar Cámaras</button>
+    </div>
+
+    <script>
+        let hls = null;
+        let cameras = [];
+
+        // Cargar lista de cámaras
+        async function loadCameras() {
+            try {
+                const response = await fetch('http://localhost:9997/v3/paths/list');
+                const data = await response.json();
+                cameras = data.items || [];
+                
+                document.getElementById('cameraCount').textContent = cameras.length;
+                
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = '<option value="">-- Selecciona una cámara --</option>';
+                
+                cameras.forEach((camera, index) => {
+                    const option = document.createElement('option');
+                    option.value = camera.name;
+                    option.textContent = `${camera.name} (${camera.source ? '🟢 Activa' : '⚪ Inactiva'})`;
+                    select.appendChild(option);
+                });
+                
+                updateStatus('✅ Cámaras cargadas. Selecciona una para ver el stream.', 'playing');
+            } catch (error) {
+                console.error('Error cargando cámaras:', error);
+                updateStatus('❌ Error cargando cámaras: ' + error.message, 'error');
+            }
+        }
+
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+
+        function playStream() {
+            const select = document.getElementById('cameraSelect');
+            const cameraId = select.value;
+            
+            if (!cameraId) {
+                updateStatus('⚠️ Por favor selecciona una cámara', 'error');
+                return;
+            }
+
+            const video = document.getElementById('video');
+            const streamUrl = `http://localhost:8888/${cameraId}/index.m3u8`;
+            
+            updateStatus('⏳ Conectando al stream...', 'loading');
+
+            if (Hls.isSupported()) {
+                if (hls) {
+                    hls.destroy();
+                }
+                
+                hls = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    backBufferLength: 90
+                });
+                
+                hls.loadSource(streamUrl);
+                hls.attachMedia(video);
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play();
+                    updateStatus(`✅ Reproduciendo: ${cameraId}`, 'playing');
+                });
+                
+                hls.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        updateStatus(`❌ Error fatal: ${data.type} - ${data.details}`, 'error');
+                        console.error('HLS Error:', data);
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Safari nativo
+                video.src = streamUrl;
+                video.addEventListener('loadedmetadata', function() {
+                    video.play();
+                    updateStatus(`✅ Reproduciendo: ${cameraId}`, 'playing');
+                });
+            } else {
+                updateStatus('❌ Tu navegador no soporta HLS', 'error');
+            }
+        }
+
+        function stopStream() {
+            const video = document.getElementById('video');
+            video.pause();
+            
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+            
+            updateStatus('⏹️ Stream detenido', 'loading');
+        }
+
+        function reloadCameras() {
+            loadCameras();
+        }
+
+        // Cargar cámaras al iniciar
+        loadCameras();
+    </script>
+</body>
+</html>
